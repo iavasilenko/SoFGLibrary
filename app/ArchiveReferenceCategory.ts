@@ -10,7 +10,7 @@ export function getReferenceCategory(
   if (href && !href.startsWith("#")) return undefined;
   if (config.supplicant && (href === "#entry-supplicant" || href === "#agent")) return "初始 Agent";
   if (entry) {
-    if ("eventCategory" in entry && entry.eventCategory) return { tasks: "任务中事件", other: "其他事件", ruins: "遗迹事件", chains: "事件链" }[entry.eventCategory];
+    if ("eventCategory" in entry && entry.eventCategory) return { gods: "神祇限定事件", tasks: "任务中事件", relationships: "人物关系事件", other: "其他事件", ruins: "遗迹事件", chains: "系列事件" }[entry.eventCategory];
     if (config.id === "base-location-modifiers") return "地点修正";
     if (config.id === "magic") return "魔法";
     if (config.id === "character-modifiers") return "角色特质";

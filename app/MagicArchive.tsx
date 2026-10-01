@@ -6,9 +6,23 @@ import { SidebarBackdrop, useArchiveSidebar } from "./ArchiveSidebar";
 import { CatalogueNavigation } from "./CatalogueNavigation";
 import { useArchiveNavigation } from "./useArchiveNavigation";
 import { ExpandableRow, RichText } from "./BaseGodArchive";
+import { concisePercentageUnits } from "./ArchiveTextPresentation";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
-import { magicSchools, magicSpells } from "./MagicData";
+import { magicSchools as sourceSchools, magicSpells as sourceSpells } from "./MagicData";
+import { archiveModOrder, sortArchiveMods } from "./ArchiveModOrder";
 import "./magic.css";
+
+// Preserve school levels; order Mod additions within each level by workshop ID.
+const magicSpells = sortArchiveMods(sourceSpells, spell => spell.baseGame ? "" : [spell.source, spell.sourceName]);
+const magicSchools = [...sourceSchools].sort((a, b) => {
+ const order = (id: string) => {
+  const spells = magicSpells.filter(spell => spell.school === id);
+  const origin = sourceSpells.find(spell => spell.school === id);
+  return spells.some(spell => spell.baseGame) || !origin ? [0, 0] : archiveModOrder([origin.source, origin.sourceName]);
+ };
+ const x = order(a.id), y = order(b.id);
+ return x[0] - y[0] || x[1] - y[1];
+});
 
 const config: ArchiveRecordConfig = {
   id: "magic", assetDir: "", autoLink: false, powers: [],
@@ -70,7 +84,7 @@ export default function MagicArchive() {
               <div className="magic-source"><b>来源</b><span>{spell.sourceName}</span></div>
               <div className="expanded-meta">{spell.meta}{spell.channelled ? " · 持续施法" : ""}</div>
               <div className="task-location"><b>执行地点</b><RichText config={config} text={spell.location!} /></div>
-              <div className="task-stat-line">{spell.statLine}</div>
+              <div className="task-stat-line">{concisePercentageUnits(spell.statLine ?? "")}</div>
               <p className="magic-progress">{spell.progress}</p>
               {spell.casting && <p className="magic-casting">{spell.casting}</p>}
               <div className="expanded-section"><h4>具体效果</h4><p><RichText config={config} text={spell.text} exclude={spell.name} /></p></div>

@@ -1,8 +1,40 @@
 # 事件目录来源核对
 
 当前展示 DLC 2.0 数据，Mod 优先读取 v2.0，否则读取根目录。事件与选项保留英文原名，机制说明使用中文。
+- 桌面与手机确认一次性信息、触发次数块、无自链接、地形流程图与 Agent 同步；37 页浏览器检查无运行时错误、字体／分类／预览回退。静态编译通过，docs 的入口及 13 个构建资产与 pages-dist 逐一 SHA-256 匹配；未推送。
+## 2026-10-01：互斥事件选项
 
-## 当前结构与数量
+- 核对目录全部 600 个事件：599 个 JSON 原始定义与页面事件 ID、外层条件和选项数量一致；另一个 Fear and Paranoia 是代码提示，没有选项，不涉及随机选项判定。
+- EventParser 的 `&` 和 `|` 同优先级、从左向右结合；PopupEvent 逐项检查 choice.condition，条件不符的按钮不可选择，不会在选项之间随机抽选。条件证明遵循该语法，只使用已核实的神祇、种族与任务属性互斥关系；未知字段、复杂或无法解析的表达式保留原展示。
+- 11 个定义具有互斥选项组：A Glimpse Of The Greater Things 的五个梦境、Venality: As agreed upon、Parallel investigations、Something witty、The rare sight of charity、They shouldn't have seen that、Orcish road toll。6 个定义在各条件下只有一个结果，显示“条件结果”；5 个定义仍有组内可选项，显示“条件分支”，组内仍由玩家选择。
+- 所有原始效果、英文选项名与条件保持不变；分类标记随选项传播到 Agent 与神祇投影。已存在的条件重叠情况没有改成互斥，例如 Campfire bonding 的最高属性并列、Pickpockets 的高 Intrigue 与非 Trickster 同时成立。
+- A Glimpse Of The Greater Things 的五个 `maeRedux.god_dream_*` 定义外层条件完全相同、事件概率均为 0.05；Task_PerformChallenge.triggerMidChallengeEvent 会随机抽取事件版本，因此五种梦境组内各 20%。每个版本的两项选择分别要求对应 god_is_* / !god_is_*，只开放一个结果。Iastur 的对应奖励内部仍为四种属性各 25%，持续 999 回合。展示区分这三层判定，不移除真实随机。
+- scripts/audit-event-choice-conditions.mjs 可重新核对原始 JSON；生成清单同时保护事件条件、选项名和原始显示条件，发生数据变化时不会套用旧分组。scripts/check-event-choice-conditions.mjs 验证 599 个源事件、互斥规则、重叠反例、数值边界、真实随机与 Agent 投影。
+- 本地静态编译通过，桌面 1602px 与手机 390px 逐项验证 11 个定义及 Agent 投影；无横向溢出或运行时异常。产物同步到 docs，未推送。
+
+## 2026-10-01：概率结果换行
+
+- 按最新要求覆盖此前的同行展示规则：每个概率结果独占一行，同一结果的多个效果保持在一起；概率下划线和两位小数规则不变。链接预览属性不参与拆行。
+- Shared EventPresentation 同步作用于事件目录、Agent 与神祇投影；600 个事件检查通过。对 1376 个选项去除空白后比较 SHA-256 一致，确认概率数字与结算文字未改动。
+- 浏览器扫描事件目录 117 个多概率选项均以换行显示；用户指出的 Shipwreck 四个结果在桌面与手机分别起行，下划线保留，无横向溢出或运行时异常。TypeScript、神祇投影、静态编译通过，产物同步到 docs，未推送。
+
+
+
+## 2026-10-01：简洁条件、触发间隔与系列事件
+
+- 保留 517 个有效分支/节点，207 张 Agent 关联事件卡；原始判定表达式和抽选数据不变。
+- 人物关系条件分为人物 A、人物 B、双方关系、其他条件，分组使用边线和分隔线；组内省去重复主语。选项使用 A/B，比较使用 >、<；同类身份的且排除与或包含合并，混合或条件保持原逻辑。
+- 仅将相邻、同值、无附加限制的双向好感变化合并为 AB 互相变化；单向、封顶、不等值和不同随机结果不合并。
+- 176 个事件的等待信息单列“触发间隔”，显示固定回合或最短/最长回合与选项差别。98 个所有结果都禁止自身重复的事件单列“一次性事件”。仅特定选项结束剧情的限制仍留在该选项。
+- Venality 的兑现节点可被新的约定重新激活，不标记为全局一次性。Story time 的共用累计次数仅在第一选项说明，第二/第三选项不重复；Iastur 页面同步使用已核对的条件和选项效果。
+- 对照 DLC PopupEvent.bindReferences：%him2 等带 2 的代词对应人物 B，不带 2 的对应人物 A；R0/R1/R2 是另外的叙事人物。动态地点、城市、统治者、教团等用中文花括号占位说明，真实概率数字不受影响；仅改显示文字，既有锚点不改。
+- 原 35 组事件链改名为系列事件，另增加 14 组、38 个关联节点，共 49 组。10 组通过共同读写剧情状态关联；另核对 Venality、Contradictory Texts / Missing Pages、Stumbling into intrigue / lore、Fresh horses / Sailing winds 的跨节点状态写入。仅共用资格筛选、没有相互影响的沉船随机池未据此归组。
+- 系列按整体描述、流程图、节点卡片统一展示。保留原 chain-* 外层锚点、所有节点锚点及各来源边界；不将共享计时误画为必须顺序发生。
+- Corrupt Guards、Encircled 的 151–199 与 351–399 回合同时开放两个节点，组内各 50%；其他区间单节点不显示概率。The Sting、Suspicious Guards 同样按实际重叠窗口划分。系列流程图不再显示计时字段写入公式。
+- 导航统一为：索引进入详情、返回索引和同页锚点使用当前页；详情跨页引用打开新页。手机先预览，确认按钮遵守同一规则；同页位置返回仍保留。
+- 验证：scripts/check-event-presentation.mjs、check-agent-expansions.mjs、TypeScript、build:pages，以及桌面/手机的系列图、占位符、分组条件、新窗口与同页返回验证。
+
+## 2026-09-25 数量快照（当前数量见 2026-10-01 核对）
 
 - 通用目录分为任务中事件、其他事件、遗迹事件、事件链；各来源仍独立分栏。
 - 共 8 个来源、521 个保留的分支/节点，整理为 431 个主条目。
@@ -66,12 +98,49 @@
 
 ## 未确认与源文件异常
 
-- anw.vengeance 的直接触发入口未找到，页面保留明确提示。
+- anw.vengeance 的直接触发入口未找到，已于 2026-10-01 从页面移除。
 - 未找到 SHIFT_P1_TO_P2_RELATION 和带尾随空格的 PLACE_ARCANE_SECRET_PLAYER_ONLY 指令实现。
 - 部分条件字段未注册、部分表达式含解析器未读取的后段；沿用现有明确提示。
-- 部分 MIDCHALLENGE 又要求已被清零的事件计时达到阈值，常规入口无法满足；Noble natured friendship 的部分计时方向错误也保留说明。
-- Deep Ones Plus 将部分奖励写入环境字段而未找到读取结算路径，实际效果未确认。
-- Wonderblunder_DeepOnes.fisherman_debug 指定的 captain.jpg 未找到，不使用无关替代素材。
+- MIDCHALLENGE 要求已被清零的事件计时达到阈值，以及 Noble natured friendship 的错误方向等待条件，已于 2026-10-01 从页面移除。
+- Deep Ones Plus 的三项 Cult 事件奖励已于 2026-10-01 复核：v2.0 没有旧环境字段结算流程，事件又未调用注册的奖励指令；对应 Cult 数值与特殊物品奖励不执行。
+- Wonderblunder_DeepOnes.fisherman_debug 为不可触发调试事件，已从页面移除；未使用无关替代素材。
+
+## 2026-10-01：可触发性、人物关系和简洁说明
+
+- 当前保留 517 个事件节点，合并同名变体后为 427 个事件条目；每个节点均已对照原始 description 补充简短剧情介绍。
+- 独立列出 66 项人物关系事件，按人物 A、人物 B、双方关系和共同环境说明条件；真正的事件链仍按链展示。
+- 删除人物关系及途中任务事件中重复的入口说明；流程图只保留分类名。
+- 176 项含再次触发计时的事件，将计时集中到触发条件。Reconciliation 统一为 16 回合；城市散步系列按共用间隔和选项差值归纳。
+- 同时写入本局与人物状态时保留两层范围；只有部分选项会重置计时的，明确适用选项；不把它们错写成所有选择都重置。
+- 选项的 OR 条件按神祇、单位、人物、种族、特质分行，同类备选值在一行；嵌套 AND/OR 保持原逻辑。
+- 一次性限制统一为“不能再次触发”；任务进度变化不再显示“最低为 0”；Abandon challenge 统一只显示“取消当前挑战”。
+- 保留原始条件与效果用于源码核对，过滤展示层的无效记录及其后续链接，并保持已有系列锚点不变。
+
+### 移除的六项不可触发事件
+
+- anw.moveRuins：MOVE 概率为 0，未找到直触发调用。
+- anw.vengeance：INERT 定义没有找到正常调用入口。
+- Wonderblunder_DeepOnes.fisherman_debug：PERSON 概率为 0，身份标记没有正常赋值或直触发。
+- maeRedux.midch_fort_suspicious：途中事件入口先清零计时，条件却要求计时等于阈值 4。
+- maeRedux.midchP2P_noble_friendship_mourn：已发生回合必须大于当前回合加 40，正常写入后不成立。
+- maeRedux.midchP2P_noble_friendship_betray：已发生回合必须大于当前回合加 20，正常写入后不成立。
+
+### 验证
+
+- scripts/check-event-presentation.mjs：叙事覆盖、无效条目过滤、分类、关联链接、共用/多层/部分选项计时、OR/AND 条件及简短取消挑战说明。
+- scripts/check-agent-expansions.mjs：新增三名 Agent 的数据、素材和关联完整性。
+- 全部保留 Agent 关联的外层身份与种族可达性检查通过；桌面及手机页面无运行错误或横向溢出。
+
+### Deep Ones Plus 奖励字段重新核对
+
+- 重新反编译当前本体 EventContext / EventManager，以及 Deep Ones Plus v1.0、v2.0 全 DLL；没有修改游戏或 Mod 文件。
+- 当前执行链：EventManager.chooseOutcome → EventContext.updateEnvironment → writeEnvironment，仅写入状态字典。只有 effects 才进入 EventRuntime.evaluate(effect) → properties[command].setValue。
+- v2.0 Modcore.initializeEventVariables 注册 DEEPONEPLUS_GAINPROFILE、DEEPONEPLUS_GAINMENACE、DEEPONEPLUS_GAINITEM 为奖励指令，却未在三项事件 JSON 的 effects 中调用；GAINCHARGE 未注册为指令，EVENTEFFECT 计数也没有消费路径。
+- v1.0 的 deepOnePlusLocationCultEventEffect / deepOnePlusPersonEventEffect 读取并清理上述环境字段，分别改变 Cult 数值、调用 calcItem；v2.0 已删除这套流程。此版本差异告知用户，不把旧版效果写进采用 v2.0 的页面。
+- Community Library 对事件入口与弹窗的补丁没有转接 writeEnvironment / updateEnvironment 或奖励字段。
+- Around the Corner、Makeshift Temple、Accused Deep One 集中说明当前配置的未执行奖励，选项中去掉反复的“实际生效未确认”。直接执行的 Menace、HP、任务进度、临时属性、普通物品与 Arcane Secret 保留；生效结果完全相同的概率合并。
+- 另核对 Stumbling into lore：PLACE_ARCANE_SECRET_PLAYER_ONLY 末尾含空格，本体指令字典采用精确匹配，不能冒充无空格的合法指令；anw.vengeance 的未知关系指令所在事件已移除。
+- 二进制 SHA256：本体 42468A86DD6CA90E9090F303343BABBDB266FEFB63B0654423F63C4808A4FA46；Deep Ones Plus v1.0 ACED9C9E2EF354C9899586F457DEAECDA8C693B4F9FEF83FE4709AACF3277593；v2.0 5D4CE15E5B1E0396B28C93F7CCBE2745F8F69F2DAAFCA0F8E889FFB4FF29789C。
 
 ## 实现与验证
 
@@ -157,7 +226,7 @@
 - 不将状态条件通过写成必定触发；仍需其他条件及对应事件入口。严格大于的等待按最早可满足回合说明，例如超过 15 回合即选择后第 16 回合起。
 - 比较方向错误、字段大小写不一致、未解析条件与本局/地点作用域不一致按源码标注；没有据此伪造正常冷却。
 - 未找到后续用途的字段：ANW_FIRST_DAUGHTER、FOG_DREAMS3、WEIGHT_OF_THE_TASK、MAEREDUX_NOBLE_CONNECTIONS_EARNED、MAE_GVW_1。
-- Deep Ones Plus 的奖励字段仍保留未找到实际结算路径的提示；未把字段写入等同于收到奖励。
+- Deep Ones Plus 的奖励字段在 2026-10-01 已重新反编译并逐路径确认；展示层集中说明配置问题，只列实际执行的选项效果。
 - 同条件随机分支合并为一个结果框。途中事件的权重只换算为该框内的相对概率；其他事件继续使用候选检查概率，不冒充整局触发概率。
 - 去除成立/是/否/排除/结束的冗余判断节点。放大图在可用宽度至少 900px 时每行最多三分支；战斗图展平后使用同一布局。
 - 本次不改动神祇页面。事件目录仍为 521 个原节点、38 个同名分类、597 张折叠卡；普通事件在同名分类之前，事件链保持原结构。
@@ -178,6 +247,22 @@
 - 浏览器确认 Human 框为两个 50%、非 Human 框无权重；手机端先预览再跳转保持不变。
 - 检查：check-selection-overlap.cjs、verify-selection.mjs；结果：verification-selection-overlap.json、verification-selection-ui.json。
 
+## 2026-10-01：条件与效果展示统一
+
+- 517 个可展示事件及 Agent 关联事件复用同一展示规则，原始 EventRecord 条件、选项执行顺序与概率数据保留。
+- 且条件用编号列表；或条件同行以“或”连接。嵌套条件保留括号，AND 排除项可合并，OR 排除项不改成 AND。
+- 选项条件采用独立浅底块；触发条件、流程图条件、选项条件中的地点修正及角色特质增加详情链接，不将 Might 等普通属性或个人 Shadow 误连到地点修正。
+- A/B 的单位简称 A/B；任务进度简称“A的任务进度”；扣血移除上限说明并保留降至 0 死亡提示；Mastery 比较不重复写“等级”。
+- 同一选项的随机结果同行展示，百分比保留最多两位小数并加下划线；不同随机结果不跨组相加。
+- 同一结果中连续获得相同随从或物品合并为数量；随从链接到详情页，效果正文不重复属性，预览保留属性。已核对 Wretched Poor、Skeletal Juggernaut、Daughter 和 Skeleton Warrior 等引用。
+- 取消任务统一为“取消当前挑战”；禁止重复触发的自身引用移除，仅保留涉及其他事件的引用。
+- Fairy festival 的 NoMore_FairyFestivals 使用 local:false，EventContext.writeEnvironment 写入 map.eventState；前三项选择使本局全局不可再次触发，并非仅同地点。Move on 仅重置 101 回合等待，因此不标为所有选项均一次性。
+- 普通数值范围、默认 HP/遗迹/教团上限不重复说明；事件专设的数值上限和次数限制保留。
+- 全站正文、属性公式与引用预览省略“百分点”；数值、正负号和百分比不变。
+- 移除解析器提示和“任务事件计时 = 任务事件计时阈值”默认内部条件；实际触发间隔与其他条件保留，编号连续，流程图不留下空条件框。
+- 37 个页面浏览器检查无上述冗余文字或运行时错误；517 个事件回归检查、Agent 检查、TypeScript 与静态编译通过。
+- 回归检查、TypeScript、静态编译通过；桌面和手机实测编号条件、同行概率下划线、跨页详情新标签、手机确认弹窗与无横向溢出。
+
 ## 2026-09-25：系列引用、语义名称与进入条件
 
 - 覆盖同来源、同分类、同名系列全部成员的相同计数/等待限制，合并为“事件名 系列事件”链接；子集仍列具体语义分支。同名但来源不同或独立事件链不合并。
@@ -187,3 +272,38 @@
 - 521 个原节点、597 张卡和原选项数不变。2404 行非状态效果及全部选项名称/条件保留；5887 组源条件等价测试通过。
 - 浏览器核对 320–1920 宽度、4 卡布局、放大图 3 分支布局、系列预览、手机确认跳转。
 - Agent 页新增的事件使用相同数据；参见 AGENT_EVENTS_SOURCE_AUDIT.md。
+## 2026-10-01：神祇事件同步、分类与字号
+
+- 三个页面复用同一份标准化事件记录：神祇页投影 97 张卡，Agent 页保留 207 张可达关联卡；每张关联卡附完整事件页链接和预览，跨页在新标签打开。
+- 加入 83 个神祇相关记录（82 项 JSON、1 项 Cordyceps 代码通知），合计 600 个节点／分支；JSON 的 ID、名称、类型、条件和选项名称逐项校验，自定义 DLL 结算保留既有审计效果。
+- Kalastrophe 三个概括确认项展开为 22 个实际事件：Assist 10、Interfere 8、Terrorize 4；保留英文选项与对应神力引用。
+- 神祇限定优先于其他分类；108 个节点归入该类，其中 3 个系列保留整体介绍、流程图和节点卡片，且只出现一次。
+- 专属特质／修正引用链接相应神祇页，通用内容链接通用目录。Pareidolia Crises 是代码机制，移回 Adolia 机制模块，不伪装为独立事件。Ixthus 两项提示采用实际选项，前置转化由行动完成。
+- 同名变体按当前分类分组，防止跨模块合并；保留事件锚点，为旧 In the dark 系列总览提供重定向。
+- 全站 Mod 顺序：Deep Ones Plus（2879667447）、Living Wilds（2932110698）、Orcs Plus（3003549759），再神祇、其他、Agent Mod；每类编号升序。Robber Baron=3446675112，Surveyor=3700090862，已核对 mod_desc.json。
+- 魔法保留学派等级，排序同等级 Mod 增项；发展型修正保留前置模块，在其中使用同一来源顺序。
+- 描述／条件／间隔正文均为 13px，与选项正文一致；条件／间隔标题与事件选项标题同为 12px，已核对计算字号。
+- 事件、Agent、神祇投影回归、TypeScript 与静态编译通过；37 页面无重复 ID、导航排序错误或运行时异常，桌面及手机跨页预览通过。
+## 2026-10-01：条件逻辑简写
+
+- 相同完整操作数的严格比较与相等条件，以或连接时合并为 ≥／≤，例如 A Intrigue > A Lore 或 A Intrigue = A Lore → A Intrigue ≥ A Lore。
+- 同一人物的多个肯定身份／种族条件省去重复主语，例如 A 是 Human 或 A 的种族是 Elf → A 是 Human 或 Elf；不同人物、不同操作数、且条件和否定或条件不误合并。
+- 原始 EventRecord 判定保持不变，事件目录、Agent、神祇与流程图共用该展示规则；幂等、嵌套条件和引用保护回归通过。
+- One supplicant, and another 的自身引用已核对源文件：两个选项均写 MAEREDUX_CORDY_RUB=1，本事件要求该值为 0；因此为本局一次性。次数和时间字段仅被本事件读取，无法越过已触发锁。现有自引用来自旧状态说明生成器，不是新的事件调用；本轮按用户要求解释，未改其内容。
+## 2026-10-01：自身引用与重复状态说明清理
+
+- 扫描全部 600 个事件，展示正文、选项条件、效果与间隔中不再保留指向本事件自身的链接；Agent 及神祇页继续复用同一标准化记录。跨事件、系列总览与完整事件页链接保留。
+- One supplicant, and another 只保留一次性事件信息。删除无法越过 MAEREDUX_CORDY_RUB 锁的自身时间窗口、次数字段和相关要求；两个选项均显示“无效果”。JSON 与原始 EventRecord 判定不改动。
+- 六个使用 turn 写入已触发标记的事件，合并各选项重复的已触发说明到一次性信息；其他真实效果和随机结果保留。
+- A village of faithful、Inhospitable village 与 Shadowed by another 的所有结果都会使独立的全局次数 +1，因此将最多 2／2／3 次统一显示为触发次数，不再在每个结果重复计数和自身链接。
+- Story time 保留用户指定的首选项次数规则但不引用自身；Cracked Molar 保留实际解锁的选项。A dreadful habit 的条件型次数例外只说明一次，不误改成无条件次数上限。
+- 仅全局一次性锁移除无后续作用的自身计时；人物作用域的锁不删除共享计时，后续节点的等待与链接不删。Inn between places 的无效字段写入技术说明不再重复出现在每个选项，未伪造有效冷却。
+- 同类肯定条件提取共同主语和谓语，例如“地形为 Snow 或 Arctic 或 Drycold 或 Tundra”“当前神祇是 Iastur 或 Mammon”“当地有 Sewers 或 Ancient Ruins”。不同人物、否定条件、嵌套且／或和引用属性不混并。
+- 回归包含自身与他事件混合引用、死计时／死次数、全局与人物锁、选择性一次性、次数限制、链接保护、概率结果及段落边界；600 个事件、25 个神祇投影、Agent 与 TypeScript 检查通过。
+## 2026-10-01：链接标记与条件结构隔离
+
+- 修复 A Petty Imitation、Idle Delusions、Lonely at the Top 等事件中链接预览的多行文本被当成条件行、标签及属性泄漏到正文的问题。条件与段落拆分前仅合并链接标记内部换行，正文换行保持原样。
+- 条件语法解析时暂存完整链接标记；预览内的编号、括号、人物 A／B、且／或不参与条件分组与主语删减。完整预览仍可悬浮／触摸查看，并保留跨页面新标签跳转。
+- Escamrak 的 Revelry of the Body 原引用含空预览，严格标签匹配未识别。渲染支持空预览属性，且该教义引用补入既有等级范围与 -1 档效果；生成器同步纳入教义等级并规范链接内换行。
+- 添加多行／双段落／编号／逻辑词／人物主语的链接保护回归，以及图中三项条件列表数量检查。600 个事件、25 个神祇投影、Agent、TypeScript 与静态编译通过。
+- 浏览器扫描索引列出的全部 37 页，未再发现链接源码显示在正文；核对桌面与手机 Imperial Blood 预览、Escamrak 教义预览及跨页新标签行为，无运行时异常。静态产物同步到 docs，未推送。

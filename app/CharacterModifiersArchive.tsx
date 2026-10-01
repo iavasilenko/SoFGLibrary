@@ -8,15 +8,16 @@ import { useArchiveNavigation } from "./useArchiveNavigation";
 import { ExpandableRow, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
 import { characterModifiers, characterModifierCategories } from "./CharacterModifiersData";
+import { sortArchiveMods } from "./ArchiveModOrder";
 import "./character-modifiers.css";
 
-const sources = Array.from(new Set(characterModifiers.map(item => item.source))).map(id => ({
+const sources = sortArchiveMods(Array.from(new Set(characterModifiers.map(item => item.source))).map(id => ({
   id, name: characterModifiers.find(item => item.source === id)!.sourceName,
   groups: Object.entries(characterModifierCategories).map(([category, name]) => ({
     id: "characters-" + id + "-" + category, name,
     items: characterModifiers.filter(item => item.source === id && item.category === category),
   })).filter(group => group.items.length),
-}));
+})), source => [source.id, source.name]);
 const config: ArchiveRecordConfig = {
   id: "character-modifiers", assetDir: "", autoLink: false, powers: [],
   sections: sources.flatMap(source => source.groups.map(group => ({ id: group.id, title: "角色特质", items: group.items }))),

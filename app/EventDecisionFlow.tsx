@@ -2,12 +2,16 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 import { Maximize2, X } from "lucide-react";
-import { RichText } from "./BaseGodArchive";
+import { EventConditionText, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
 import type { EventRecord } from "./EventTypes";
 import { combatDecision, selectionRoutes, conditionSelectsVariant, resultSelectionLabels } from "./EventDecisionModel";
 import { variantLabel } from "./EventBranchLabels";
 import { familySelectionRule, type EventFamily } from "./EventVariantModel";
+import { conciseEventTrigger } from "./EventPresentation";
+import { formatEventConditions } from "./EventConditionPresentation";
+import { replaceEventPlaceholders } from "./EventPlaceholders";
+import { compactSeriesTiming } from "./EventRelatedSeries";
 
 type Props = { config: ArchiveRecordConfig; family: EventFamily };
 
@@ -25,8 +29,7 @@ function FlowArrow({ label }: { label?: string }) {
 function Conditions({ config, text, label }: { config: ArchiveRecordConfig; text: string; label: string }) {
  return <div className="event-chart-node event-chart-condition">
   <b>{label}</b>
-  <ul>{text.split("\n并且 ").map((term, index) =>
-   <li key={index}><RichText config={config} text={term} /></li>)}</ul>
+  <EventConditionText config={config} text={text} />
  </div>;
 }
 
@@ -80,15 +83,20 @@ function FlowFork({ items, className = "" }: { items: ForkItem[]; className?: st
 function ChartContent({ config, family }: Props) {
  const { records } = family;
  const conditionSelected = conditionSelectsVariant(records);
- const reference = (record: EventRecord) => '<CrossReference name="' + variantLabel(record) + ' · 选项与效果" href="#entry-' + record.entry.id + '" />';
+ const nodeLabel = (record: EventRecord) => family.series ? "节点 " + (Number(/节点\s*(\d+)/.exec(record.entry.meta ?? "")?.[1]) || records.indexOf(record) + 1) : variantLabel(record);
+ const seriesText = (text: string) => !family.series ? text : text.replace(/<CrossReference name="[^"]+" href="#entry-([^"]+)"\s*\/>/g, (full, id: string) => {
+  const target = records.find(record => record.entry.id === id);
+  return target ? nodeLabel(target) : full;
+ });
+ const reference = (record: EventRecord) => '<CrossReference name="' + nodeLabel(record) + ' · ' + (record.entry.eventOptions?.every(option => option.conditionGroup !== undefined) && new Set(record.entry.eventOptions.map(option => option.conditionGroup)).size === record.entry.eventOptions.length ? "条件结果" : "选项与效果") + '" href="#entry-' + record.entry.id + '" />';
  const results = (entries: EventRecord[]) => {
   const { relative, labels } = resultSelectionLabels(entries, records);
   return <div className="event-chart-node event-chart-result-group">
-   {entries.length > 1 && <b>{relative ? "组内随机结果" : "候选结果"}</b>}
+   {entries.length > 1 && <b>{relative ? "组内随机结果" : "可触发节点"}</b>}
    {relative && <p className="event-chart-probability-note">抽中本框所列结果时的相对概率：</p>}
    {entries.map((record, index) => <div key={record.entry.id} className="event-chart-result event-flow-result" data-event-id={record.entry.id}>
     <RichText config={config} text={reference(record)} />
-    {labels[index] && <p>{labels[index]}</p>}
+    {labels[index] && <p><u className="event-probability">{labels[index]}</u></p>}
    </div>)}
   </div>;
  };
@@ -115,22 +123,25 @@ function ChartContent({ config, family }: Props) {
   </div>;
  }
  const routes = selectionRoutes(records);
+ const relationship = records.every(record => record.type === "P2P");
+ const displayConditions = (text: string) => formatEventConditions(seriesText(family.series?.mode === "related" ? compactSeriesTiming(text) : text), relationship);
  const drawBranch = (branch: typeof routes[number]["branches"][number]) => <>
-  {branch.condition && <><Conditions config={config} text={branch.condition} label="分支条件 · 全部满足" /><FlowArrow /></>}
+  {branch.condition && displayConditions(branch.condition) && <><Conditions config={config} text={displayConditions(branch.condition)} label="分支条件" /><FlowArrow /></>}
   {results(branch.records)}
  </>;
  return <div className="event-chart-content">
-  <p className="event-chart-rule">{conditionSelected ? "按条件区分事件版本。" : familySelectionRule(records)}</p>
+  <p className="event-chart-rule">{family.series ? "各节点按下列入口与条件触发。" : conditionSelected ? "按条件区分事件版本。" : familySelectionRule(records)}</p>
+  {records.some(record => record.entry.eventOptions?.some(option => option.conditionGroup !== undefined)) && <p className="event-chart-choice-rule">事件内按条件进入对应结果；同一条件下仍有多个可选项时，由玩家选择。</p>}
   <div className="event-chart-routes">{routes.map((route, routeIndex) =>
    <section className="event-flow-route" key={route.trigger} aria-label={"触发入口 " + (routeIndex + 1)}>
     <div className="event-chart-node event-chart-start"><b>{routes.length > 1 ? "入口 " + String(routeIndex + 1).padStart(2, "0") : "触发入口"}</b>
-     <p><RichText config={config} text={route.trigger} /></p>
+     <p><RichText config={config} text={seriesText(conciseEventTrigger(route.trigger)).replaceAll("事件链", "系列事件")} /></p>
     </div>
     <FlowArrow />
-    {route.shared && <><Conditions config={config} text={route.shared} label="共同条件 · 全部满足" /><FlowArrow /></>}
+    {route.shared && displayConditions(route.shared) && <><Conditions config={config} text={displayConditions(route.shared)} label="共同条件" /><FlowArrow /></>}
     {route.branches.length === 1 ? <div className="event-chart-single-result">{drawBranch(route.branches[0])}</div>
      : <FlowFork items={route.branches.map((branch, index) => ({
-      key: String(index), label: branch.records.map(record => variantLabel(record)).join("、"), body: drawBranch(branch),
+      key: String(index), label: branch.records.map(nodeLabel).join("、"), body: drawBranch(branch),
      }))} />}
    </section>)}</div>
  </div>;
@@ -167,7 +178,7 @@ export default function EventDecisionFlow({ config, family }: Props) {
     // that will be unmounted with this enlarged dialog.
     queueMicrotask(() => target.dispatchEvent(new MouseEvent("click", mouse)));
    }}>
-   <header><div><small>判定流程图</small><h3>{family.name}</h3></div><button type="button" aria-label="关闭流程图" onClick={close}><X size={22} /></button></header>
+   <header><div><small>判定流程图</small><h3>{replaceEventPlaceholders(family.name)}</h3></div><button type="button" aria-label="关闭流程图" onClick={close}><X size={22} /></button></header>
    <div className="event-chart-dialog-body"><ChartContent config={config} family={family} /></div>
   </dialog>}
  </figure>;

@@ -109,6 +109,10 @@ const labels: Readonly<Record<string, string>> = {
 };
 
 export function variantLabel(record: EventRecord, _index?: number) {
+ if (/^mirror\.power/.test(record.eventId)) return /选择 <CrossReference name="([^"]+)"/.exec(record.decision.trigger)?.[1] + " 分支";
+ if (/web_devour_(attacking|defending)$/.test(record.eventId)) return record.eventId.endsWith("attacking") ? "进攻者分支" : "防守者分支";
+ if (record.eventId === "flesh.livingcity_encroached") return "Living Terrain 转化分支";
+ if (record.eventId === "flesh.livingcity") return "Fleshcrafters 发展分支";
  if (labels[record.eventId]) return labels[record.eventId];
  const combat = /^与(.+?)战斗，Agent 作为(进攻者|防守者)，(获胜|战败)，败方(死亡|撤退)时显示。$/.exec(record.decision.trigger);
  if (combat) return combat[1].trim() + " · " + combat[2] + " · " + (combat[3] === "获胜" ? "对手" : "Agent ") + combat[4];

@@ -1,4 +1,5 @@
 import { locationGroups as sourceLocationGroups, locationIntro } from "./LocationsData";
+import { sortArchiveMods } from "./ArchiveModOrder";
 import type { ArchiveRecordConfig, DetailItem, SectionConfig } from "./GodArchiveTypes";
 
 import { locationEnvironment } from "./LocationEnvironmentData";
@@ -9,7 +10,7 @@ import { locationRulerGroups, locationRulerBindings } from "./LocationRulerData"
 
 const unplacedIds = new Set(sourceLocationGroups.flatMap(group => group.sections.filter(section => section.id.endsWith("-unplaced")).flatMap(section => section.items.map(item => item.id!))));
 
-const rawLocationGroups = sourceLocationGroups.map(group => {
+const rawLocationGroups = sortArchiveMods(sourceLocationGroups, group => [group.id, group.title]).map(group => {
  const sections = group.sections.filter(section => !section.id.endsWith("-unplaced")).map(section => ({ ...section, items: section.items.map(item => {
    const environment = locationEnvironment[item.id!];
    if (!environment) return { ...item };

@@ -8,7 +8,9 @@ import { useState } from "react";
 import { Package, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { DetailGrid, RichText } from "./BaseGodArchive";
 import { config as baseConfig } from "./BaseItemsData";
-import { modItemSections } from "./ModItemsData";
+import { modItemSections as sourceModItemSections } from "./ModItemsData";
+import { sortArchiveMods } from "./ArchiveModOrder";
+const modItemSections = sortArchiveMods(sourceModItemSections, section => [section.id, section.title]);
 
 const config = { ...baseConfig, sections: [...baseConfig.sections, ...modItemSections] };
 

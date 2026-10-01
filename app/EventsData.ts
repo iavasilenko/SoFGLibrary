@@ -1,5 +1,7 @@
 import type { EventSourceGroup } from "./EventTypes";
 import { agentExpansionEvents } from "./AgentExpansionRelatedData";
+import { unavailableEventIds } from "./EventAvailability";
+import { godEventGroups } from "./GodEventsData";
 
 export const eventGroups: EventSourceGroup[] = [
   {
@@ -20163,8 +20165,16 @@ export const eventGroups: EventSourceGroup[] = [
 ];
 
 eventGroups.push(...agentExpansionEvents);
+for (const group of godEventGroups) {
+ const existing = eventGroups.find(source => source.id === group.id);
+ if (existing) existing.records.push(...group.records);
+ else eventGroups.push(group);
+}
+for (const group of eventGroups) group.records = group.records.filter(record => !unavailableEventIds[record.eventId]);
 
 export const eventAliases: Readonly<Record<string, string>> = {
+  "entry-event-family-base-tasks-in-the-dark-overview": "entry-event-family-base-gods-in-the-dark-overview",
+  "entry-event-family-base-tasks-in-the-dark-flow": "entry-event-family-base-gods-in-the-dark-flow",
   "entry-event-2968835416-foge-exploreruins-deadarmy0": "events-2968835416-ruins",
   "entry-event-2968835416-anw-exploreruins-dead0": "events-2968835416-ruins",
   "entry-event-2968835416-anw-exploreruins-dragon0": "events-2968835416-ruins",

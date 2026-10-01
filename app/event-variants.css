@@ -1,20 +1,21 @@
 
 /* Overview, diagram and result cards remain peers in the four-column grid. */
-.events-theme .event-variant-grid, .events-theme .event-family-cards {
+.event-records-container { container-name: event-records; container-type: inline-size; min-width: 0; }
+.event-variant-grid, .event-family-cards {
  display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; min-width: 0; align-items: start;
 }
-@container records (min-width:600px) {
- .events-theme .event-variant-grid, .events-theme .event-family-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
+@container event-records (min-width:600px) {
+ .event-variant-grid, .event-family-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
-@container records (min-width:1000px) {
- .events-theme .event-variant-grid, .events-theme .event-family-cards { grid-template-columns: repeat(4,minmax(0,1fr)); }
+@container event-records (min-width:1000px) {
+ .event-variant-grid, .event-family-cards { grid-template-columns: repeat(4,minmax(0,1fr)); }
 }
-.events-theme .event-variant-grid > .expandable-table { grid-template-columns: minmax(0,1fr); min-width: 0; }
+.event-variant-grid > .expandable-table { display: contents; }
 .event-variant-family { grid-column: 1/-1; min-width: 0; border-top: 1px solid var(--line); padding-block: 24px 8px; scroll-margin-top: 64px; }
 .event-variant-family > h4 { margin: 0 0 20px; font-size: 22px; overflow-wrap: anywhere; }
 .event-family-overview, .event-family-flow { min-width: 0; }
-.event-family-results, .events-theme .event-family-results > .expandable-table { display: contents; }
-.events-theme .event-family-note { margin-top: 16px; }
+.event-family-results, .event-family-results > .expandable-table { display: contents; }
+.event-family-note { margin-top: 16px; }
 .event-decision { margin: 0; min-width: 0; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
 .event-chart-expand { display: flex; gap: 8px; align-items: center; justify-content: center; width: 100%; min-height: 40px; margin-bottom: 20px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--ink-soft); color: var(--paper); cursor: pointer; font: inherit; }
 .event-chart-content { min-width: 0; }
@@ -27,6 +28,7 @@
 .event-chart-dispatch { text-align: center; border-style: dashed; color: var(--muted); font-size: 12px; }
 .event-chart-condition ul { margin: 10px 0 0; padding-left: 16px; color: var(--muted); }
 .event-chart-condition li + li { margin-top: 8px; }
+.event-chart-condition li { white-space: pre-line; }
 .event-chart-selection { background: var(--ink); }
 .event-chart-result { border-color: var(--accent); text-align: center; }
 .event-chart-result .cross-reference { display: inline-block; max-width: 100%; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }

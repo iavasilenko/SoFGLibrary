@@ -574,22 +574,22 @@ const config: GodConfig = {
         },
         {
           "name": "Story time",
-          "text": "Agent 在 Hysterical Tome 副本所在地点执行四种基础属性对应的任务，途中事件计时到达要求；同地有非 Chosen One、厌恶 Madness 的英雄时可触发，概率参数为 0.5。\n选项中的人称代词随人物变化。次数条件与选项更新使用的计数变量不一致，不能保证按设计在五次后停止。事件定义未指定图片。",
+          "text": "英雄在拥挤的场所听到源于 Laughing King's Tome 的古怪故事，玩家可以干扰其追查。\n\n触发条件\n当前人物是玩家控制的 Agent\n并且 另一人物是英雄\n并且 不满足（另一人物是 Chosen One）\n并且 另一人物对 Madness 的偏好等级 小于 0\n并且 两人位于同一地点\n并且 任务事件计时 = 任务事件计时阈值\n并且 （正在执行 Might 属性任务；或者 正在执行 Intrigue 属性任务；或者 正在执行 Command 属性任务；或者 正在执行 Lore 属性任务）\n并且 当地 Laughing King's Tome 强度 = 100\n并且 当前神祇是 Iastur。",
           "eventOptions": [
             {
               "name": "Send trouble %his2 way",
-              "text": "重置途中事件计时；目标英雄 Menace +9；Menace +3。"
+              "text": "更新 <CrossReference name=\"Story time\" /> 的次数限制：另两个选项的累计选择次数达到 4 后，该事件不再触发。\n任务中事件计时重置为 0。\n另一人物 Menace +9。\n当前人物 Menace +3。"
             },
             {
               "name": "Lead %him astray",
-              "text": "重置途中事件计时；目标英雄 Disrupted 3 回合；Menace +3。"
+              "text": "任务中事件计时重置为 0。\n另一人物的单位被打断 3 回合。\n当前人物 Menace +3。"
             },
             {
               "name": "Leave %him2 to %his2 quest",
               "text": "重置途中事件计时。"
             }
           ],
-          "eventCategory": "tasks"
+          "eventCategory": "relationships"
         },
         {
           "name": "A peaceful village shaken by a senseless tragedy",

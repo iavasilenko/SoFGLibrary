@@ -8,7 +8,9 @@ import { CatalogueNavigation } from "./CatalogueNavigation";
 import { useArchiveNavigation } from "./useArchiveNavigation";
 import { DetailGrid, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
-import { minionSections } from "./MinionsData";
+import { minionSections as sourceMinionSections } from "./MinionsData";
+import { sortArchiveMods } from "./ArchiveModOrder";
+const minionSections = sortArchiveMods(sourceMinionSections, section => [section.id, section.title]);
 import { minionCombatMechanics } from "./MinionCombatMechanics";
 import "./minions.css";
 

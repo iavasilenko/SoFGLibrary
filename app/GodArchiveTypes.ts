@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
 import { presentEventItems } from "./EventPresentation";
+import { projectGodEvents } from "./GodEventProjection";
 
 export type ArchiveGodChoice = "index" | "she-who-will-feast" | "iastur" | "vinerva" | "ophanim" | "mammon" | "broken-maker" | "evil-beneath" | "deaths-games" | "cordyceps" | "ixthus" | "kishi" | "living-void" | "chandalor" | "escamrak" | "adolia" | "kalastrophe" | "thing-from-beyond" | "paradoxis" | "shadow-counsel" | "shadow-counsel-war" | "lotus-egregore" | "aberrant-metal" | "alai" | "mekhane" | "villikos";
 export type Relation = { name: string; href: string; meta?: string; text?: string; image?: string; target?: "_blank" };
 export type ArchivePageChoice = ArchiveGodChoice | "base-location-modifiers" | "base-items" | "agents" | "religions" | "magic" | "non-player-units" | "minions" | "armies" | "events" | "locations" | "character-modifiers" | "points-of-interest";
-export type EventCategory = "tasks" | "other" | "ruins" | "chains";
-export type EventChain = { id: string; name: string; description: string };
+export type EventCategory = "gods" | "tasks" | "relationships" | "other" | "ruins" | "chains";
+export type EventChain = { id: string; name: string; description: string; mode?: "related" };
 export type EventComparison = { original: Relation; changes: string[] };
-export type EventOption = { name: string; text: string; condition?: string };
+export type EventOption = { name: string; text: string; condition?: string; conditionGroup?: number };
+export type EventRepeat = { once?: boolean; interval?: string };
 export type TenetLevel = { level: number; text: string };
-export type DetailItem = { name: string; text: string; acquisition?: string; eventOptions?: EventOption[]; eventCategory?: EventCategory; eventChain?: EventChain; eventComparison?: EventComparison; tenetRange?: string; tenetLevels?: TenetLevel[]; image?: string; images?: string[]; seal?: number; meta?: string; statLine?: string; location?: string; locationGroup?: string; limit?: string; id?: string; baseGame?: boolean; time?: string; stats?: string; abilities?: DetailItem[]; positiveTags?: string; negativeTags?: string; initialValue?: string; modifierLocations?: string; modifierSource?: string; modifierChange?: { natural: string; external: string } };
+export type DetailItem = { name: string; text: string; acquisition?: string; eventOptions?: EventOption[]; eventRepeat?: EventRepeat; eventCategory?: EventCategory; eventChain?: EventChain; eventComparison?: EventComparison; eventOriginal?: Relation; eventGods?: string[]; tenetRange?: string; tenetLevels?: TenetLevel[]; image?: string; images?: string[]; seal?: number; meta?: string; statLine?: string; location?: string; locationGroup?: string; limit?: string; id?: string; baseGame?: boolean; time?: string; stats?: string; abilities?: DetailItem[]; positiveTags?: string; negativeTags?: string; initialValue?: string; modifierLocations?: string; modifierSource?: string; modifierChange?: { natural: string; external: string } };
 export type PowerItem = { name: string; seal: number; cost: string | number; icon?: string; images?: string[]; effect: string; limit: string; id?: string };
 export type PowerGroupConfig = { id: string; title: string; powers: PowerItem[] };
 export type SealItem = { seal: number; progress: number; progressText?: string; agents: number | string; reward: string[]; powerRecovery?: string };
@@ -73,12 +75,14 @@ function normalizeSectionOrder(config: GodConfig) {
 }
 
 export function prepareGodConfig(config: GodConfig) {
+  projectGodEvents(config);
   normalizeTaskTags(config);
   normalizeLocationModifiers(config);
   normalizeSectionOrder(config);
   disambiguateConfigEntries(config);
   const entries = config.sections.flatMap(section => section.items);
-  const presented = presentEventItems(entries);
+  const normalized = presentEventItems(entries);
+  const presented = entries.map((item, index) => item.eventOriginal ? item : normalized[index]);
   const eventDisplay = new Map(entries.map((item, index) => [item, presented[index]]));
   config.sections = config.sections.map(section => ({ ...section, items: section.items.map(item => eventDisplay.get(item)!) }));
   return config;

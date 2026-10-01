@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import ArchiveIcon from "./ArchiveIcon";
 import { Contact, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarBackdrop, useArchiveSidebar } from "./ArchiveSidebar";
 import { CatalogueNavigation } from "./CatalogueNavigation";
 import { useArchiveNavigation } from "./useArchiveNavigation";
 import { DetailGrid, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
-import { nonPlayerUnits } from "./NonPlayerUnitsData";
+import { nonPlayerUnits as sourceNonPlayerUnits } from "./NonPlayerUnitsData";
+import { sortArchiveMods } from "./ArchiveModOrder";
+const nonPlayerUnits = sortArchiveMods(sourceNonPlayerUnits, unit => unit.group);
 import "./non-player-units.css";
 
 const collections = [
@@ -80,7 +82,7 @@ export default function NonPlayerUnitsArchive({ onReturn }: { onReturn: () => vo
           {collection.id === "base-npcs" && <h3 className="npc-group-heading">{group.name}</h3>}
           {group.units.map(unit => <section id={"entry-npc-" + unit.id} className="section npc-record" key={unit.id}>
             <div className="npc-record-heading">
-              {unit.image && <Image className="npc-catalog-portrait" src={unit.image} alt={unit.name} width={112} height={112} />}
+              {unit.image && <ArchiveIcon className="npc-catalog-portrait" src={unit.image} alt={unit.name} size={112} />}
               <div><p className="section-index">{String(nonPlayerUnits.indexOf(unit) + 1).padStart(2, "0")} / {unit.baseGame ? "游戏本体 · " + unit.faction : unit.group}</p><h3>{unit.name}</h3></div>
             </div>
             <div className="npc-basics">

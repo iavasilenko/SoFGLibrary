@@ -7,8 +7,10 @@ export type EventRecord = {
   eventId: string;
   type: string;
   category: EventCategory;
+  anchorCategory?: EventCategory;
   chain: EventChain | null;
   sourceFile: string;
+  gods?: string[];
   condition: string;
   decision: { trigger: string; condition: string; selection: string };
 };

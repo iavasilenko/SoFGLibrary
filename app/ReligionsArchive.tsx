@@ -9,11 +9,12 @@ import { useArchiveNavigation } from "./useArchiveNavigation";
 import { DetailGrid, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
 import { religionGroups } from "./ReligionsData";
+import { sortArchiveMods } from "./ArchiveModOrder";
 import "./religions.css";
 
 
 const baseGroups = religionGroups.filter(group => ["holy-order", "conditional", "witches"].includes(group.id));
-const modGroups = religionGroups.filter(group => !baseGroups.includes(group));
+const modGroups = sortArchiveMods(religionGroups.filter(group => !baseGroups.includes(group)), group => [group.id, group.title]);
 const sourceNames: Record<string, string> = {
   drowned: "Deep Ones Plus", "living-wilds": "Living Wilds",
   covens: "Covens, Curses & Curios Recast", orcs: "Orcs Plus",

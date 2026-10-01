@@ -1,6 +1,8 @@
 // Source audit: work/agents-audit/event-candidates.json and AGENT_EVENTS_SOURCE_AUDIT.md
 export type AgentEventBinding = { id: string; kind: string; choices?: number[]; note?: string; title?: string };
-export const agentEventBindings: Readonly<Record<string, AgentEventBinding[]>> = {
+import { unavailableAgentEntries } from "./EventAvailability";
+import { eventGroups } from "./EventsData";
+const sourceBindings: Readonly<Record<string, AgentEventBinding[]>> = {
   "hierophant": [
     {
       "id": "event-base-fog-p2p-wilful-to-warnings-hiero",
@@ -1379,6 +1381,12 @@ export const agentEventBindings: Readonly<Record<string, AgentEventBinding[]>> =
   ],
   "robber-baron": []
 };
+
+const availableIds = new Set(eventGroups.flatMap(group => group.records.map(record => record.entry.id)));
+export const agentEventBindings: Readonly<Record<string, AgentEventBinding[]>> = Object.fromEntries(
+  Object.entries(sourceBindings).map(([agent, bindings]) => [agent, bindings.filter(binding =>
+    availableIds.has(binding.id) && !unavailableAgentEntries[agent]?.includes(binding.id))]),
+);
 
 export const agentEventNotes: Readonly<Record<string,string>> = {
   "robber-baron": "无专属事件。走私、贿赂与佣兵分裂由行动或军队逻辑直接结算。",

@@ -1,4 +1,5 @@
 import { eventGroups as sourceGroups } from "./EventsData";
 import { presentEventGroups } from "./EventPresentation";
-export const eventGroups = presentEventGroups(sourceGroups);
+import { sortArchiveMods } from "./ArchiveModOrder";
+export const eventGroups = sortArchiveMods(presentEventGroups(sourceGroups), group => [group.id, group.name]);
 export { eventAliases } from "./EventsData";

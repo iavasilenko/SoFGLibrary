@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ArchiveIcon from "./ArchiveIcon";
 import { MapPinned, Landmark, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarBackdrop, useArchiveSidebar } from "./ArchiveSidebar";
 import { CatalogueNavigation } from "./CatalogueNavigation";
@@ -64,7 +65,7 @@ export default function LocationsArchive({ onReturn, kind = "locations" }: { onR
         <header className="location-collection-heading"><p className="section-index">{["places-base", "places-cordyceps"].includes(group.id) ? "游戏本体" : "Mod"}</p><h2>{group.title}</h2></header>
         {group.articles.map(article => <section className="section location-article" id={article.id} key={article.id}>
           <header className="location-article-heading">
-            {article.image && <img src={article.image} alt="" loading="lazy" />}
+            {article.image && <ArchiveIcon src={article.image} size={72} />}
             <div><h3>{article.name}</h3>{article.unplaced && <p>未找到正常生成路径</p>}</div>
           </header>
           {article.description && <p className="location-common-scope"><RichText config={config} text={article.description} /></p>}

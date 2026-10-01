@@ -106,4 +106,4 @@ assert.ok(modifierGroups.some(g => g.id === related.robberBaronModifiers.id));
 assert.ok(minionSections.some(s => s.id === "mod-robber-baron"));
 const audit = new URL("../AUDIT-2026-09-26-agents.md", import.meta.url);
 assert.ok(existsSync(audit));
-console.log(JSON.stringify({agents: 3, skills: 12, challenges: 14, directEvents: 2, eventCards: 16, links, pictures, status: "PASS"}, null, 2));
+console.log(JSON.stringify({agents: 3, skills: 12, challenges: 14, directEvents: 2, eventCards: additionalAgents.flatMap(a => getAgentEvents(a.id).flatMap(s => s.items)).length, links, pictures, status: "PASS"}, null, 2));

@@ -35,5 +35,5 @@ export const eventFamilyDescriptions: Record<string, string> = {
  "weird dreams iii": "Agent 在梦中将白天的研究或调查联系起来，醒后获得任务进展；Lore 与 Intrigue 任务的奖励不同。",
  "the hard times": "受灾聚居地的祭司向 Agent 请求援助。Ophanim 与其他神祇的分支分别处理捐款、当地危机和 Faith。",
  "%ruler_name's last drink": "宫廷密谋通过毒酒除掉令人厌恶的统治者。Agent 参与的交涉与统治者自身触发的事件提供不同选择。",
- "a glimpse of the greater things": "Agent 在梦中接触古神的异象，醒后可能受到惊扰或获得启示。五种异象共用同一组可触发神祇条件，再由事件池抽选。"
+ "a glimpse of the greater things": "Agent 梦见古神的异象。五种梦境等概率出现；梦到当前所奉神祇时获得对应奖励，梦到其他神祇时任务进度 −10。每种梦境内的两项结果由当前神祇决定，不作随机抽选；Iastur 的奖励另有四种等概率属性加成。"
 };

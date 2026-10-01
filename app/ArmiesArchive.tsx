@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import ArchiveIcon from "./ArchiveIcon";
 import { Swords, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarBackdrop, useArchiveSidebar } from "./ArchiveSidebar";
 import { CatalogueNavigation } from "./CatalogueNavigation";
 import { useArchiveNavigation } from "./useArchiveNavigation";
 import { DetailGrid, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
-import { armies, armyMechanics } from "./ArmiesData";
+import { armies as sourceArmies, armyMechanics } from "./ArmiesData";
+import { sortArchiveMods } from "./ArchiveModOrder";
+const armies = sortArchiveMods(sourceArmies, unit => unit.group);
 import "./armies.css";
 
 const collections = [
@@ -78,7 +80,7 @@ export default function ArmiesArchive({ onReturn }: { onReturn: () => void }) {
           {collection.id === "base-armys" && <h3 className="army-group-heading">{group.name}</h3>}
           {group.units.map(unit => <section id={"entry-army-" + unit.id} className="section army-record" key={unit.id}>
             <div className="army-record-heading">
-              {unit.image && <Image className="army-catalog-portrait" src={unit.image} alt={unit.name} width={112} height={112} />}
+              {unit.image && <ArchiveIcon className="army-catalog-portrait" src={unit.image} alt={unit.name} size={112} />}
               <div><p className="section-index">{String(armies.indexOf(unit) + 1).padStart(2, "0")} / {unit.baseGame ? "游戏本体 · " + unit.faction : unit.group}</p><h3>{unit.name}</h3></div>
             </div>
             <div className="army-basics">

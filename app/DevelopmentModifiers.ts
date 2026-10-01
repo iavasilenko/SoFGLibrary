@@ -1,5 +1,7 @@
 import type { DetailItem, ArchiveRecordConfig } from "./GodArchiveTypes";
-import { config as originalConfig, modifierGroups } from "./BaseLocationModifiersData";
+import { config as originalConfig, modifierGroups as sourceModifierGroups } from "./BaseLocationModifiersData";
+import { sortArchiveMods } from "./ArchiveModOrder";
+const modifierGroups = sortArchiveMods(sourceModifierGroups, group => [group.id, group.name]);
 
 type DevelopmentSpec = { id: string; normal: string; threshold: string; crisis: string; aftermath: string; options?: DetailItem["eventOptions"]; relatedPrefix?: string; modifierChange?: DetailItem["modifierChange"] };
 
@@ -144,7 +146,7 @@ const developmentIntroductions: Record<string, string> = {
 
 
 const originalEntries = originalConfig.sections.flatMap(section => section.items);
-export const developmentArticles = developmentSpecs.map(spec => {
+export const developmentArticles = sortArchiveMods(developmentSpecs.map(spec => {
   const entry = originalEntries.find(item => item.id === spec.id)!;
   const source = modifierGroups.find(group => group.sections.some(section => section.items.some(item => item.id === spec.id)))!;
   const related = spec.relatedPrefix ? originalEntries.filter(item => item.id?.startsWith(spec.relatedPrefix!)) : [];
@@ -166,7 +168,7 @@ export const developmentArticles = developmentSpecs.map(spec => {
     },
   ];
   return { id: "development-" + spec.id, entry, source, cards, related };
-});
+}), article => [article.source.id, article.source.name]);
 
 // Preserve links to the former aftermath card.
 export const developmentAliases: Readonly<Record<string, string>> = Object.fromEntries(

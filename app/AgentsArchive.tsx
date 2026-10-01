@@ -1,20 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import ArchiveIcon from "./ArchiveIcon";
 import { Users, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarBackdrop, useArchiveSidebar } from "./ArchiveSidebar";
 import { useArchiveNavigation } from "./useArchiveNavigation";
 import { DetailGrid, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig } from "./GodArchiveTypes";
-import { agents } from "./AgentsData";
+import { agents as sourceAgents } from "./AgentsData";
+import { sortArchiveMods } from "./ArchiveModOrder";
+import EventVariants from "./EventVariants";
+import EventSeries from "./EventSeries";
+import { eventPresentationCardIds } from "./EventVariantModel";
 import { getAgentEvents, agentEventNotes } from "./AgentEventsModel";
 import "./agents.css";
 
+const agents = sortArchiveMods(sourceAgents, agent => agent.group);
 const groups = [...new Set(agents.map(agent => agent.group))];
 const eventsByAgent = Object.fromEntries(agents.map(agent => [agent.id, getAgentEvents(agent.id)]));
 const eventItems = agents.flatMap(agent => eventsByAgent[agent.id].flatMap(source => source.items));
-const entryIds = [...agents.flatMap(agent => [...agent.skills, ...agent.challenges]), ...eventItems].map(item => "entry-" + item.id);
+const entryIds = [...agents.flatMap(agent => [...agent.skills, ...agent.challenges]), ...eventItems].map(item => "entry-" + item.id).concat(agents.flatMap(agent => eventsByAgent[agent.id].flatMap(source => eventPresentationCardIds(source.records))));
 const config: ArchiveRecordConfig = {
   id: "agents",
   assetDir: "agents",
@@ -68,12 +73,12 @@ export default function AgentsArchive({ onReturn }: { onReturn: () => void }) {
         <header id="top" className="modifier-library-header">
           <h1>Agent</h1>
           <p>游戏本体与 Mod 中不限定神祇的玩家可控 Agent；不收录 Supplicant。每栏列出基础属性、技能、招募条件、专有挑战及特有事件与分支。</p>
-          <p>事件按实际来源分栏；“专属选项”也包括该身份可替代属性要求的选项。仅排除此 Agent 的通用事件不列入；代码中存在但无法正常触发的分支会明确标注。</p>
+          <p>事件按实际来源分栏；“专属选项”也包括该身份可替代属性要求的选项。仅排除此 Agent 的通用事件不列入；无法正常触发的分支不收录。</p>
           <p>本体常规招募需要空闲 Agent 名额和 1 招募点。属性为招募完成后的基础值；继承型角色按转化前状态记录。Mod 采用 2.0 版本，没有版本文件夹时采用根目录。</p>
         </header>
         {agents.map((agent, index) => <section id={"entry-agent-" + agent.id} className="section agent-record" key={agent.id}>
           <div className="agent-record-heading">
-            {agent.image && <Image className="agent-catalog-portrait" src={agent.image} alt={agent.name} width={112} height={112} />}
+            {agent.image && <ArchiveIcon className="agent-catalog-portrait" src={agent.image} alt={agent.name} size={112} />}
             <div><p className="section-index">{String(index + 1).padStart(2, "0")} / {agent.group}</p><h2>{agent.name}</h2></div>
           </div>
           <div className="agent-basics">
@@ -91,7 +96,8 @@ export default function AgentsArchive({ onReturn }: { onReturn: () => void }) {
             {agentEventNotes[agent.id] && <p className="agent-empty">{agentEventNotes[agent.id]}</p>}
             {eventsByAgent[agent.id].map(source => <div className="agent-event-source" key={source.id}>
               <h4>{source.name}</h4>
-              <DetailGrid config={config} items={source.items} openEntries={openEntries} onToggle={toggle} />
+              <EventVariants config={config} records={source.records.filter(record => !record.chain)} openEntries={openEntries} onToggle={toggle} />
+              {[...new Set(source.records.filter(record => record.chain).map(record => record.chain!.id))].map(id => <EventSeries key={id} config={config} records={source.records.filter(record => record.chain?.id === id)} openEntries={openEntries} onToggle={toggle} />)}
             </div>)}
           </div>
         </section>)}

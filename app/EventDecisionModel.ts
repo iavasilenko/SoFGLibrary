@@ -1,5 +1,7 @@
 import { variantLabel } from "./EventBranchLabels";
 import { eventSelectionCases } from "./EventSelectionCases";
+import { formatEventConditions } from "./EventConditionPresentation";
+import { mutuallyExclusive } from "./EventConditionLogic";
 
 import type { EventRecord } from "./EventTypes";
 
@@ -63,6 +65,7 @@ export function combatDecision(records: EventRecord[]): CombatDecision | undefin
 // UAE_Warlord's Orc species, and the corresponding event JSON conditions.
 export function conditionSelectsVariant(records: EventRecord[]) {
  if (records.length < 2 || !records.every(record => record.type === "MIDCHALLENGE")) return false;
+ if (records.every((record, index) => records.slice(index + 1).every(other => mutuallyExclusive(record.condition, other.condition)))) return true;
  const ids = records.map(record => record.eventId).sort().join("|");
  const checkedPairs = [
   ["fog.midch_orcish_toast_human", "fog.midch_orcish_toast_warlord"],
@@ -81,6 +84,30 @@ export function variantSelection(record: EventRecord, family: EventRecord[]) {
 
 // Chart-only partition of simultaneously eligible versions. The underlying
 // records/conditions remain unchanged; candidates can occur in multiple cases.
+function temporalBranches(route: DecisionRoute): DecisionBranch[] | undefined {
+ const windows = route.branches.flatMap(branch => branch.records.map(record => {
+  const terms = branch.condition.split("\n并且 ").filter(Boolean);
+  if (!terms.length || terms.some(term => !/^回合 (大于|小于) \d+$/.test(term))) return undefined;
+  let min = 0, max = Infinity;
+  for (const term of terms) {
+   const match = /^回合 (大于|小于) (\d+)$/.exec(term)!;
+   if (match[1] === "大于") min = Math.max(min, Number(match[2]) + 1);
+   else max = Math.min(max, Number(match[2]) - 1);
+  }
+  return { record, min, max };
+ }));
+ if (windows.some(window => !window)) return undefined;
+ const valid = windows.filter(window => window !== undefined);
+ const bounds = [...new Set([0, ...valid.flatMap(window => [window.min, ...(Number.isFinite(window.max) ? [window.max + 1] : [])])])].sort((a,b) => a-b);
+ return bounds.flatMap((min, index) => {
+  const max = index + 1 < bounds.length ? bounds[index + 1] - 1 : Infinity;
+  const records = valid.filter(window => min >= window.min && min <= window.max).map(window => window.record);
+  if (!records.length) return [];
+  const condition = min === 0 ? "回合 ≤ " + max : max === Infinity ? "回合 ≥ " + min : min === max ? "回合 = " + min : "回合为 " + min + "–" + max;
+  return [{ condition, records }];
+ });
+}
+
 export function selectionRoutes(records: EventRecord[]): DecisionRoute[] {
  return decisionRoutes(records).map(route => {
   const entries = route.branches.flatMap(branch => branch.records);
@@ -92,6 +119,10 @@ export function selectionRoutes(records: EventRecord[]): DecisionRoute[] {
    condition: item.condition,
    records: records.filter(record => item.ids.includes(record.eventId)),
   })) };
+  if (entries.every(record => record.chain?.mode === "related")) {
+   const branches = temporalBranches(route);
+   if (branches) return { ...route, branches };
+  }
   // An unconditional version remains eligible when a narrower version passes.
   // Split that situation from its complement rather than treating it as exclusive.
   const unconditional = route.branches.find(branch => !branch.condition);
@@ -134,7 +165,8 @@ export function describeVariantEntry(record: EventRecord, records: EventRecord[]
  if (record === defaultBranch) return "默认分支；其他分支条件满足时，仍与它们一起参与抽选。";
  const cases = selectionRoutes(records).find(route => route.trigger === source.trigger)?.branches.filter(branch => branch.records.includes(record)) ?? [];
  return cases.map(branch => {
-  const when = branch.condition ? branch.condition.replaceAll("\n并且 ", "，且 ") + " 时" : "满足共同条件后";
+  const conditions = branch.condition ? "\n" + formatEventConditions(branch.condition, record.type === "P2P") + "\n\n" : "";
+  const when = branch.condition ? "满足上述条件时" : "满足共同条件后";
   const { relative, labels } = resultSelectionLabels(branch.records, records);
   if (relative) {
    const index = branch.records.indexOf(record);
@@ -144,10 +176,10 @@ export function describeVariantEntry(record: EventRecord, records: EventRecord[]
     const name = variantLabel(other);
     text += "，" + (labels[1 - index] ? labels[1 - index] + " " : "") + '进入 <CrossReference name="' + name + '" href="#entry-' + other.entry.id + '" />';
    }
-   return text + "。";
+   return conditions + text + "。";
   }
   const selection = labels[branch.records.indexOf(record)];
   if (record.type === "INERT" && !branch.condition) return record.decision.trigger;
-  return when + "进入候选。" + (selection ? "\n" + selection : "");
- }).join("\n");
+  return conditions + when + "进入候选。" + (selection ? "\n" + selection : "");
+ }).join("\n\n进入条件\n");
 }

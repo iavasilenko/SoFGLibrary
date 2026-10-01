@@ -6,6 +6,8 @@ import { describeVariantEntry } from "./EventDecisionModel";
 import { DetailGrid, ExpandableRow, RichText } from "./BaseGodArchive";
 import type { ArchiveRecordConfig, DetailItem } from "./GodArchiveTypes";
 import type { EventRecord } from "./EventTypes";
+import { eventNarrative } from "./EventNarratives";
+import { replaceEventPlaceholders } from "./EventPlaceholders";
 import { describeEventFamily, groupEventVariants, variantLabel, type EventFamily } from "./EventVariantModel";
 
 type Props = { config: ArchiveRecordConfig; records: EventRecord[]; openEntries: Set<string>; onToggle: (id: string) => void };
@@ -21,11 +23,12 @@ function VariantFamily({ config, family, openEntries, onToggle }: Omit<Props, "r
   return {...record.entry, name: variantLabel(record, index), image: commonImage ? undefined : record.entry.image,
    meta: undefined, text: ["进入条件：" + describeVariantEntry(record, records), text || (!record.entry.eventOptions?.length ? "无选项。" : "")].filter(Boolean).join("\n\n")};
  });
- const commonNotes = commonParagraphs.filter(paragraph => paragraph !== commonTrigger && !paragraph.startsWith("触发条件\n") &&
+ const commonNotes = commonParagraphs.filter(paragraph => paragraph !== commonTrigger && paragraph !== eventNarrative(first.eventId, first.entry.name) && !paragraph.startsWith("触发条件\n") &&
+  !/^进入条件(?:[：:\n]|$)/.test(paragraph) && paragraph !== "下方仅列出该 Agent 对应的选项。" &&
   !/^(抽选权重|探索抽选权重|打捞抽选权重|单次候选检查概率)：/.test(paragraph));
  return <section className="event-variant-family" id={family.id} aria-label={family.name}>
-  <h4>{family.name}</h4>
-  <div className="expandable-table event-family-cards">
+  <h4>{replaceEventPlaceholders(family.name)}</h4>
+  <div className="event-family-cards">
    <div className="event-family-overview">
     <ExpandableRow config={config} entryId={family.id + "-overview"} name={family.name} image={commonImage} baseGame={records.every(record => record.entry.baseGame)} open={openEntries.has(family.id + "-overview")} onToggle={onToggle}>
      <div className="expanded-section"><h4>整体描述</h4><p><RichText config={config} text={describeEventFamily(family)} /></p></div>
@@ -46,7 +49,7 @@ function VariantFamily({ config, family, openEntries, onToggle }: Omit<Props, "r
 export default function EventVariants({ config, records, openEntries, onToggle }: Props) {
  const families = groupEventVariants(records);
  const ordered = [...families.filter(family => family.records.length === 1), ...families.filter(family => family.records.length > 1)];
- return <div className="event-variant-grid">{ordered.map(family => family.records.length === 1
+ return <div className="event-records-container"><div className="event-variant-grid">{ordered.map(family => family.records.length === 1
   ? <DetailGrid key={family.id} config={config} items={[family.records[0].entry]} openEntries={openEntries} onToggle={onToggle} />
-  : <VariantFamily key={family.id} config={config} family={family} openEntries={openEntries} onToggle={onToggle} />)}</div>;
+  : <VariantFamily key={family.id} config={config} family={family} openEntries={openEntries} onToggle={onToggle} />)}</div></div>;
 }

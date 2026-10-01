@@ -2,8 +2,11 @@
 
 import { SidebarBackdrop, useArchiveSidebar } from "./ArchiveSidebar";
 import { useArchiveNavigation } from "./useArchiveNavigation";
+import { archiveReferenceTarget } from "./ArchiveLinkTarget";
+import { normalizeReferenceMarkers } from "./ArchiveReferenceMarkup";
 
 import Image from "next/image";
+import ArchiveIcon from "./ArchiveIcon";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -11,6 +14,15 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { BookOpen, ChevronDown, Crown, Eye, PanelLeftClose, PanelLeftOpen, Shield, ShieldAlert, Skull, Swords } from "lucide-react";
 import MobileReferenceDialog from "./MobileReferenceDialog";
 import { getReferenceCategory } from "./ArchiveReferenceCategory";
+import { formatOptionCondition, relationshipConditionGroups } from "./EventConditionPresentation";
+import { linkEventConditionReferences } from "./EventEffectReferences";
+import { eventRepeatText } from "./EventRepeatPresentation";
+import { replaceEventPlaceholders } from "./EventPlaceholders";
+import { godEventRecords } from "./GodEventProjection";
+import EventVariants from "./EventVariants";
+import EventSeries from "./EventSeries";
+import { eventPresentationCardIds } from "./EventVariantModel";
+import "./event-variants.css";
 import "./event-groups.css";
 import "./place-sections.css";
 import { taskLocationGroups } from "./TaskLocationModel";
@@ -36,15 +48,17 @@ function imageFor(config: ArchiveRecordConfig, image?: string) {
  return "./" + config.assetDir + "/" + image + cacheBust;
 }
 
-function CrossReference({ config, name, href, meta, text, image, target }: { config: ArchiveRecordConfig; name: string; href?: string; meta?: string; text?: string; image?: string; target?: "_blank" }) {
+function CrossReference({ config, name, href, meta, text, image }: { config: ArchiveRecordConfig; name: string; href?: string; meta?: string; text?: string; image?: string; target?: "_blank" }) {
  const [mobileOpen, setMobileOpen] = useState(false);
+ const [previewSeen, setPreviewSeen] = useState(false);
  const originId = useId();
  const entry = (href?.startsWith("#entry-") ? allEntries(config).find(item => "#" + (item.id ? "entry-" + item.id : anchorFor(item.name)) === href) : undefined) ?? entryFor(config, name);
  const relation = config.relations?.[name];
  const relationLink = relation?.effects?.[0]?.href ?? relation?.sources?.[0]?.href;
  const resolvedHref = href ?? (entry ? "#" + (entry.id ? "entry-" + entry.id : anchorFor(entry.name)) : relationLink ?? "#");
- const richResolvedText = text ?? (entry && "effect" in entry ? entry.effect : (entry ? [entry.text, ...(entry.eventOptions?.length ? ["事件选项", ...entry.eventOptions.map(option => option.name + (option.condition ? "\n条件：" + option.condition : "") + "\n" + option.text)] : []), ...(entry.eventComparison ? ["与原版的区别", ...entry.eventComparison.changes] : []), ...(entry.tenetLevels ?? []).map(level => `${level.level}: ${level.text}`)].filter(Boolean).join("\n") : undefined)) ?? relation?.effects?.[0]?.text ?? relation?.sources?.[0]?.text ?? "";
- const resolvedText = richResolvedText.replace(/<CrossReference name="([^"]+)"[^>]*\/>/g, "$1");
+ const target = archiveReferenceTarget(resolvedHref, typeof window !== "undefined" ? window.location.href : "https://archive.invalid/?page=" + config.id);
+ const richResolvedText = (text || undefined) ?? (entry && "effect" in entry ? entry.effect : (entry ? [entry.text, eventRepeatText(entry), ...(entry.eventOptions?.length ? ["事件选项", ...entry.eventOptions.map(option => option.name + (option.condition ? "\n条件：" + option.condition : "") + "\n" + option.text)] : []), ...(entry.eventComparison ? ["与原版的区别", ...entry.eventComparison.changes] : []), ...(entry.tenetLevels ?? []).map(level => `${level.level}: ${level.text}`)].filter(Boolean).join("\n") : undefined)) ?? relation?.effects?.[0]?.text ?? relation?.sources?.[0]?.text ?? "";
+ const resolvedText = replaceEventPlaceholders(richResolvedText.replace(/<CrossReference name="([^"]+)"(?:"[^"]*"|[^">])*\/>/g, "$1"));
  const categoryEntry = resolvedHref.startsWith("#entry-")
    ? allEntries(config).find(item => "#" + (item.id ? "entry-" + item.id : anchorFor(item.name)) === resolvedHref)
    : entry;
@@ -52,6 +66,7 @@ function CrossReference({ config, name, href, meta, text, image, target }: { con
  const textOnlyEntry = config.sections.some(section => ["traits", "religion"].includes(section.id) && section.items.some(item => item === entry));
  const resolvedImage = textOnlyEntry ? undefined : imageFor(config, image ?? (entry && "icon" in entry ? entry.icon : entry && "image" in entry ? entry.image : undefined));
  const positionPopover = (anchor: HTMLAnchorElement) => {
+   setPreviewSeen(true);
    const popover = anchor.querySelector<HTMLElement>(".cross-popover");
    if (!popover) return;
    popover.style.left = "0px";
@@ -60,33 +75,38 @@ function CrossReference({ config, name, href, meta, text, image, target }: { con
    const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
    popover.style.left = String(left - rect.left) + "px";
  };
- if (href === "" || (!entry && !relation && !href && !text)) return <>{name}</>;
- return <><a className="cross-reference" data-reference-origin={originId} href={resolvedHref} target={target} rel={target ? "noopener noreferrer" : undefined} onMouseEnter={event => positionPopover(event.currentTarget)} onFocus={event => positionPopover(event.currentTarget)} onClick={event => { if (window.matchMedia("(hover: none), (pointer: coarse)").matches) { event.preventDefault(); setMobileOpen(true); } }}><span className="cross-label">{name}</span><span className="cross-popover" role="tooltip">{resolvedImage && <span className="cross-image"><Image src={resolvedImage} alt="" fill sizes="72px" /></span>}<span className="cross-copy"><small>{resolvedMeta}</small><b>{name}</b><span>{resolvedText}</span><em>点击跳转至详情</em></span></span></a><MobileReferenceDialog originId={originId} open={mobileOpen} onClose={() => setMobileOpen(false)} name={name} meta={resolvedMeta} text={resolvedText} href={resolvedHref} imageSrc={resolvedImage} target={target} /></>;
+ if (href === "" || (!entry && !relation && !href && !text)) return <>{replaceEventPlaceholders(name)}</>;
+ return <><a className="cross-reference" data-reference-origin={originId} href={resolvedHref} target={target} rel={target ? "noopener noreferrer" : undefined} onMouseEnter={event => positionPopover(event.currentTarget)} onFocus={event => positionPopover(event.currentTarget)} onClick={event => { if (window.matchMedia("(hover: none), (pointer: coarse)").matches) { event.preventDefault(); setMobileOpen(true); } }}><span className="cross-label">{replaceEventPlaceholders(name)}</span><span className="cross-popover" role="tooltip">{resolvedImage && <span className="cross-image">{previewSeen && <ArchiveIcon src={resolvedImage} fill size={72} loading="eager" />}</span>}<span className="cross-copy"><small>{resolvedMeta}</small><b>{replaceEventPlaceholders(name)}</b><span>{resolvedText}</span><em>点击跳转至详情</em></span></span></a><MobileReferenceDialog originId={originId} open={mobileOpen} onClose={() => setMobileOpen(false)} name={replaceEventPlaceholders(name)} meta={resolvedMeta} text={resolvedText} href={resolvedHref} imageSrc={resolvedImage} target={target} /></>;
 }
 
-function renderPlain(config: ArchiveRecordConfig, text: string, exclude?: string): ReactNode[] {
- if (config.autoLink === false) return [text];
- const names = [...new Set(allEntries(config).map(item => item.name))].filter(name => name !== exclude).sort((a, b) => b.length - a.length);
- if (!names.length) return [text];
- const pattern = new RegExp("(" + names.map(name => name.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")).join("|") + ")", "g");
- return text.split(pattern).map((part, index) => names.includes(part) ? <CrossReference key={part + "-" + index} config={config} name={part} /> : part);
+function renderLiteral(text: string, probabilities: boolean, keyPrefix: string): ReactNode[] {
+ const value = replaceEventPlaceholders(text);
+ if (!probabilities) return [value];
+ return value.split(/(\d+(?:\.\d+)?%)(?=[：:]|\s*进入)/g).map((part, index) => index % 2 ? <u className="event-probability" key={keyPrefix + "-" + index}>{part}</u> : part);
 }
-export function RichText({ config, text, exclude }: { config: ArchiveRecordConfig; text: string; exclude?: string }) {
- const marker = /<CrossReference name="([^"]+)"(?: href="([^"]+)")?(?: meta="([^"]+)")?(?: text="([^"]+)")?(?: image="([^"]+)")?(?: target="(_blank)")?\s*\/>/g;
+function renderPlain(config: ArchiveRecordConfig, text: string, exclude?: string, probabilities = false, keyPrefix = "plain"): ReactNode[] {
+ if (config.autoLink === false) return renderLiteral(text, probabilities, keyPrefix);
+ const names = [...new Set(allEntries(config).map(item => item.name))].filter(name => name !== exclude).sort((a, b) => b.length - a.length);
+ if (!names.length) return renderLiteral(text, probabilities, keyPrefix);
+ const pattern = new RegExp("(" + names.map(name => name.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")).join("|") + ")", "g");
+ return text.split(pattern).flatMap<ReactNode>((part, index) => names.includes(part) ? [<CrossReference key={keyPrefix + "-" + index} config={config} name={part} />] : renderLiteral(part, probabilities, keyPrefix + "-" + index));
+}
+export function RichText({ config, text, exclude, probabilities = false }: { config: ArchiveRecordConfig; text: string; exclude?: string; probabilities?: boolean }) {
+ const marker = /<CrossReference name="([^"]+)"(?: href="([^"]+)")?(?: meta="([^"]+)")?(?: text="([^"]*)")?(?: image="([^"]+)")?(?: target="(_blank)")?\s*\/>/g;
  const nodes: ReactNode[] = [];
  let cursor = 0;
  let match: RegExpExecArray | null;
  while ((match = marker.exec(text))) {
-   if (match.index > cursor) nodes.push(...renderPlain(config, text.slice(cursor, match.index), exclude));
+   if (match.index > cursor) nodes.push(...renderPlain(config, text.slice(cursor, match.index), exclude, probabilities, "plain-" + cursor));
    nodes.push(<CrossReference key={"marker-" + match.index} config={config} name={match[1]} href={match[2]} meta={match[3]} text={match[4]} image={match[5]} target={match[6] === "_blank" ? "_blank" : undefined} />);
    cursor = marker.lastIndex;
  }
- if (cursor < text.length) nodes.push(...renderPlain(config, text.slice(cursor), exclude));
+ if (cursor < text.length) nodes.push(...renderPlain(config, text.slice(cursor), exclude, probabilities, "plain-" + cursor));
  return <>{nodes}</>;
 }
 
 export function ExpandableRow({ config, entryId, name, seal, cost, image, baseGame = false, open, onToggle, children }: { config: ArchiveRecordConfig; entryId: string; name: string; seal?: number; cost?: number | string; image?: string; baseGame?: boolean; open: boolean; onToggle: (id: string) => void; children: ReactNode }) {
- return <article className={"expandable-row " + (baseGame ? "base-game-entry " : "") + (open ? "is-open" : "")} id={entryId}><button className="expandable-summary" type="button" onClick={() => onToggle(entryId)} aria-expanded={open}>{seal !== undefined && <span className="summary-seal">{seal}</span>}{image && <span className="summary-image"><Image src={imageFor(config, image)!} alt="" fill sizes="56px" /></span>}<span className="summary-name">{name}</span><ChevronDown className="summary-chevron" size={16} />{cost !== undefined && <span className="summary-cost"><small>消耗</small>{cost}</span>}</button><div className="expandable-content"><div className="expandable-inner">{children}</div></div></article>;
+ return <article className={"expandable-row " + (baseGame ? "base-game-entry " : "") + (open ? "is-open" : "")} id={entryId}><button className="expandable-summary" type="button" onClick={() => onToggle(entryId)} aria-expanded={open}>{seal !== undefined && <span className="summary-seal">{seal}</span>}{image && <span className="summary-image"><ArchiveIcon src={imageFor(config, image)!} fill size={56} /></span>}<span className="summary-name">{replaceEventPlaceholders(name)}</span><ChevronDown className="summary-chevron" size={16} />{cost !== undefined && <span className="summary-cost"><small>消耗</small>{cost}</span>}</button><div className="expandable-content"><div className="expandable-inner">{children}</div></div></article>;
 }
 function RelationGroup({ config, title, items }: { config: ArchiveRecordConfig; title: string; items?: Relation[] }) {
  if (!items?.length) return null;
@@ -94,11 +114,55 @@ function RelationGroup({ config, title, items }: { config: ArchiveRecordConfig; 
 }
 
 function AbilityList({ config, abilities }: { config: ArchiveRecordConfig; abilities: DetailItem[] }) {
- return <div className="ability-list">{abilities.map((ability, index) => <div className={"ability" + (ability.baseGame ? " base-game-ability" : "")} id={ability.id ? "entry-" + ability.id : anchorFor(ability.name)} key={ability.id ?? ability.name}><span>{String(index + 1).padStart(2, "0")}</span><div><h4>{ability.name}</h4>{ability.image && <img className="ability-icon" src={imageFor(config, ability.image)} alt="" />}{ability.location && <div className="task-location"><b>执行地点</b><RichText config={config} text={ability.location} exclude={ability.name} /></div>}{ability.statLine && <div className="task-stat-line">{ability.statLine}</div>}<p><RichText config={config} text={ability.text} exclude={ability.name} /></p>{ability.limit && <p><b>释放限制：</b><RichText config={config} text={ability.limit} exclude={ability.name} /></p>}</div></div>)}</div>;
+ return <div className="ability-list">{abilities.map((ability, index) => <div className={"ability" + (ability.baseGame ? " base-game-ability" : "")} id={ability.id ? "entry-" + ability.id : anchorFor(ability.name)} key={ability.id ?? ability.name}><span>{String(index + 1).padStart(2, "0")}</span><div><h4>{ability.name}</h4>{ability.image && <ArchiveIcon className="ability-icon" src={imageFor(config, ability.image)!} size={44} />}{ability.location && <div className="task-location"><b>执行地点</b><RichText config={config} text={ability.location} exclude={ability.name} /></div>}{ability.statLine && <div className="task-stat-line">{replaceEventPlaceholders(ability.statLine)}</div>}<p><RichText config={config} text={ability.text} exclude={ability.name} /></p>{ability.limit && <p><b>释放限制：</b><RichText config={config} text={ability.limit} exclude={ability.name} /></p>}</div></div>)}</div>;
+}
+
+export function EventConditionText({ config, text }: { config: ArchiveRecordConfig; text: string }) {
+ text = normalizeReferenceMarkers(linkEventConditionReferences(normalizeReferenceMarkers(text)));
+ const groups = relationshipConditionGroups(text);
+ const body = (value: string) => {
+  const lines = value.split("\n"), nodes: ReactNode[] = [];
+  for (let index = 0; index < lines.length; index++) {
+   if (/^\d+\.\s+/.test(lines[index])) {
+    const items: string[] = [];
+    while (index < lines.length && /^\d+\.\s+/.test(lines[index])) items.push(lines[index++].replace(/^\d+\.\s+/, ""));
+    nodes.push(<ol className="event-condition-list" key={index}>{items.map((item, number) => <li key={number}><RichText config={config} text={item} /></li>)}</ol>); index--;
+   } else if (lines[index].trim()) nodes.push(<p className="event-condition-plain" key={index}><RichText config={config} text={lines[index]} /></p>);
+  }
+  return nodes;
+ };
+ return groups.length ? <div className="event-condition-groups">{groups.map(group => <section className="event-condition-group" key={group.label}><h5>{group.label}</h5>{body(group.text)}</section>)}</div>
+  : <div className="event-condition-body">{body(text)}</div>;
+}
+function EventItemText({ config, item }: { config: ArchiveRecordConfig; item: DetailItem }) {
+ return <div className="event-description">{normalizeReferenceMarkers(item.text).split("\n\n").map((paragraph, index) => {
+  const condition = /^(触发条件|进入条件)[：:]?\n([\s\S]*)$/.exec(paragraph);
+  const repeat = /^(触发次数|触发限制)[：:]?\n([\s\S]*)$/.exec(paragraph);
+  return condition ? <section className="event-trigger-conditions" key={index}><h4>{condition[1]}</h4><EventConditionText config={config} text={condition[2]} /></section>
+   : repeat ? <section className="event-repeat-info" key={index}><h4>{repeat[1]}</h4><p><RichText config={config} text={repeat[2]} exclude={item.name} /></p></section>
+   : <p key={index}><RichText config={config} text={paragraph} exclude={item.name} probabilities /></p>;
+ })}</div>;
+}
+
+function EventOptionsBlock({ config, item }: { config: ArchiveRecordConfig; item: DetailItem }) {
+ const options = item.eventOptions ?? [];
+ const conditional = options.length > 0 && options.every(option => option.conditionGroup !== undefined);
+ const groups = conditional ? [...new Set(options.map(option => option.conditionGroup))].map(key => options.filter(option => option.conditionGroup === key)) : [options];
+ const fixedResults = conditional && groups.every(group => group.length === 1);
+ const choices = (entries: typeof options) => <ol>{entries.map((option, index) => <li key={index}>
+  <h5>{replaceEventPlaceholders(option.name)}</h5>
+  {option.condition && <div className="option-condition"><b>条件</b><EventConditionText config={config} text={formatOptionCondition(option.condition)} /></div>}
+  <p><RichText config={config} text={option.text} exclude={item.name} probabilities /></p>
+ </li>)}</ol>;
+ return <div className="event-options" data-choice-mode={fixedResults ? "conditional-results" : conditional ? "conditional-groups" : "player-choice"}>
+  <h4>{fixedResults ? "条件结果" : conditional ? "条件分支" : "事件选项"}</h4>
+  {conditional && <p className="event-choice-rule">{fixedResults ? "按条件进入对应结果。" : "不同条件对应以下结果；同组内有多个可选项时，由玩家选择。"}</p>}
+  {conditional && !fixedResults ? groups.map((group, index) => <section className="event-choice-group" key={index}><h5>{group.length === 1 ? "对应结果" : "可选结果"}</h5>{choices(group)}</section>) : choices(options)}
+ </div>;
 }
 
 export function DetailGrid({ config, items, openEntries, onToggle }: { config: ArchiveRecordConfig; items: DetailItem[]; openEntries: Set<string>; onToggle: (id: string) => void }) {
- return <div className="expandable-table">{items.map(item => { const id = item.id ? "entry-" + item.id : anchorFor(item.name); const relation = config.relations?.[item.id ?? item.name] ?? config.relations?.[item.name]; return <ExpandableRow key={id} config={config} entryId={id} name={item.name} seal={item.seal} image={item.image} baseGame={item.baseGame} open={openEntries.has(id)} onToggle={onToggle}>{item.tenetRange && <small className="tenet-range">等级范围：{item.tenetRange}</small>}{item.meta && <div className="expanded-meta">{config.id === "base-items" ? <RichText config={config} text={item.meta} exclude={item.name} /> : item.meta}</div>}{item.modifierLocations && <div className="modifier-applicability"><b>适用地点</b><RichText config={config} text={item.modifierLocations} exclude={item.name} /></div>}{item.location && <div className="task-location"><b>执行地点</b><RichText config={config} text={item.location} exclude={item.name} /></div>}{item.time && <div className="detail-stat-line"><b>执行时间：</b>{item.time}</div>}{item.initialValue && !/未找到/.test(item.initialValue) && <div className="detail-stat-line"><b>初始值：</b><RichText config={config} text={item.initialValue} exclude={item.name} /></div>}{item.stats && <div className="detail-stat-line"><b>基础属性：</b><RichText config={config} text={item.stats} exclude={item.name} /></div>}{item.abilities?.length ? <AbilityList config={config} abilities={item.abilities} /> : null}{item.statLine && <div className="task-stat-line">{item.statLine}</div>}{item.positiveTags && <div className="detail-stat-line"><b>正面标签：</b>{item.positiveTags}</div>}{item.negativeTags && <div className="detail-stat-line"><b>负面标签：</b>{item.negativeTags}</div>}{item.acquisition !== undefined ? <><div className="expanded-section"><h4>功能</h4><p><RichText config={config} text={item.text} exclude={item.name} /></p></div>{item.acquisition && <div className="expanded-section item-acquisition"><h4>获取方式</h4><p><RichText config={config} text={item.acquisition} exclude={item.name} /></p></div>}</> : item.limit ? <><div className="expanded-section"><h4>具体效果</h4><p><RichText config={config} text={item.text} exclude={item.name} /></p></div><div className="expanded-section"><h4>释放限制</h4><p><RichText config={config} text={item.limit} exclude={item.name} /></p></div></> : item.modifierSource ? <div className="expanded-section"><h4>造成的效果</h4><p><RichText config={config} text={item.text} exclude={item.name} /></p></div> : item.text ? <p><RichText config={config} text={item.text} exclude={item.name} /></p> : null}{item.tenetLevels?.map(level => <p className="tenet-level" key={level.level}><b>{level.level}:</b> <RichText config={config} text={level.text} exclude={item.name} /></p>)}{item.images?.length && item.eventCategory ? <div className="event-image-variants">{item.images.map(image => <img key={image} src={imageFor(config, image)} alt={item.name + " · 幻象插图"} loading="lazy" />)}</div> : null}{item.eventOptions?.length ? <div className="event-options"><h4>事件选项</h4><ol>{item.eventOptions.map((option, index) => <li key={index}><h5>{option.name}</h5>{option.condition && <p className="option-condition"><b>条件：</b><RichText config={config} text={option.condition} /></p>}<p><RichText config={config} text={option.text} exclude={item.name} /></p></li>)}</ol></div> : null}<EventComparisonBlock config={config} comparison={item.eventComparison} />{item.modifierSource && <div className="expanded-section modifier-source-text"><h4>来源</h4><p><RichText config={config} text={item.modifierSource} exclude={item.name} /></p></div>}{item.modifierChange && (item.modifierChange.natural || item.modifierChange.external) && <div className="modifier-change"><h4>变化方式</h4>{item.modifierChange.natural && <p><RichText config={config} text={item.modifierChange.natural} exclude={item.name} /></p>}{item.modifierChange.external && <p><RichText config={config} text={item.modifierChange.external} exclude={item.name} /></p>}</div>}<RelationGroup config={config} title="来源" items={relation?.sources} /><RelationGroup config={config} title="造成的效果" items={relation?.effects} /></ExpandableRow>; })}</div>;
+ return <div className="expandable-table">{items.map(item => { const id = item.id ? "entry-" + item.id : anchorFor(item.name); const relation = config.relations?.[item.id ?? item.name] ?? config.relations?.[item.name]; return <ExpandableRow key={id} config={config} entryId={id} name={item.name} seal={item.seal} image={item.image} baseGame={item.baseGame} open={openEntries.has(id)} onToggle={onToggle}>{item.tenetRange && <small className="tenet-range">等级范围：{item.tenetRange}</small>}{item.meta && <div className="expanded-meta">{config.id === "base-items" ? <RichText config={config} text={item.meta} exclude={item.name} /> : replaceEventPlaceholders(item.meta)}</div>}{item.modifierLocations && <div className="modifier-applicability"><b>适用地点</b><RichText config={config} text={item.modifierLocations} exclude={item.name} /></div>}{item.location && <div className="task-location"><b>执行地点</b><RichText config={config} text={item.location} exclude={item.name} /></div>}{item.time && <div className="detail-stat-line"><b>执行时间：</b>{item.time}</div>}{item.initialValue && !/未找到/.test(item.initialValue) && <div className="detail-stat-line"><b>初始值：</b><RichText config={config} text={item.initialValue} exclude={item.name} /></div>}{item.stats && <div className="detail-stat-line"><b>基础属性：</b><RichText config={config} text={item.stats} exclude={item.name} /></div>}{item.abilities?.length ? <AbilityList config={config} abilities={item.abilities} /> : null}{item.statLine && <div className="task-stat-line">{replaceEventPlaceholders(item.statLine)}</div>}{item.positiveTags && <div className="detail-stat-line"><b>正面标签：</b>{item.positiveTags}</div>}{item.negativeTags && <div className="detail-stat-line"><b>负面标签：</b>{item.negativeTags}</div>}{item.acquisition !== undefined ? <><div className="expanded-section"><h4>功能</h4><p><RichText config={config} text={item.text} exclude={item.name} /></p></div>{item.acquisition && <div className="expanded-section item-acquisition"><h4>获取方式</h4><p><RichText config={config} text={item.acquisition} exclude={item.name} /></p></div>}</> : item.limit ? <><div className="expanded-section"><h4>具体效果</h4><p><RichText config={config} text={item.text} exclude={item.name} /></p></div><div className="expanded-section"><h4>释放限制</h4><p><RichText config={config} text={item.limit} exclude={item.name} /></p></div></> : item.modifierSource ? <div className="expanded-section"><h4>造成的效果</h4><p><RichText config={config} text={item.text} exclude={item.name} /></p></div> : item.text ? item.eventCategory || item.eventOptions ? <EventItemText config={config} item={item} /> : <p><RichText config={config} text={item.text} exclude={item.name} /></p> : null}{item.tenetLevels?.map(level => <p className="tenet-level" key={level.level}><b>{level.level}:</b> <RichText config={config} text={level.text} exclude={item.name} /></p>)}{item.images?.length && item.eventCategory ? <div className="event-image-variants">{item.images.map(image => <img key={image} src={imageFor(config, image)} alt={item.name + " · 幻象插图"} loading="lazy" />)}</div> : null}{item.eventRepeat?.once && <section className="event-repeat-info event-once"><h4>一次性事件</h4></section>}{item.eventRepeat?.interval && <section className="event-repeat-info"><h4>触发间隔</h4><p><RichText config={config} text={item.eventRepeat.interval} exclude={item.name} /></p></section>}{item.eventOptions?.length ? <EventOptionsBlock config={config} item={item} /> : null}{item.eventOriginal && <div className="event-original-link">事件页：<CrossReference config={config} {...item.eventOriginal} /></div>}<EventComparisonBlock config={config} comparison={item.eventComparison} />{item.modifierSource && <div className="expanded-section modifier-source-text"><h4>来源</h4><p><RichText config={config} text={item.modifierSource} exclude={item.name} /></p></div>}{item.modifierChange && (item.modifierChange.natural || item.modifierChange.external) && <div className="modifier-change"><h4>变化方式</h4>{item.modifierChange.natural && <p><RichText config={config} text={item.modifierChange.natural} exclude={item.name} /></p>}{item.modifierChange.external && <p><RichText config={config} text={item.modifierChange.external} exclude={item.name} /></p>}</div>}<RelationGroup config={config} title="来源" items={relation?.sources} /><RelationGroup config={config} title="造成的效果" items={relation?.effects} /></ExpandableRow>; })}</div>;
 }
 
 export function EventComparisonBlock({ config, comparison }: { config: ArchiveRecordConfig; comparison?: EventComparison }) {
@@ -106,17 +170,16 @@ export function EventComparisonBlock({ config, comparison }: { config: ArchiveRe
  return <div className="event-comparison"><h4>与原版的区别</h4><p className="event-original"><span>原版事件：</span><CrossReference config={config} {...comparison.original} /></p><ul>{comparison.changes.map((change, index) => <li key={index}><RichText config={config} text={change} /></li>)}</ul></div>;
 }
 function GodEventGroups({ config, items, openEntries, onToggle }: { config: ArchiveRecordConfig; items: DetailItem[]; openEntries: Set<string>; onToggle: (id: string) => void }) {
- const categories = [{id: "tasks", name: "任务中事件"}, {id: "other", name: "其他事件"}, {id: "chains", name: "事件链"}] as const;
- const cards = (entries: DetailItem[]) => <DetailGrid config={config} items={entries} openEntries={openEntries} onToggle={onToggle} />;
+ const categories = [{id: "gods", name: "神祇限定事件"}, {id: "tasks", name: "任务中事件"}, {id: "relationships", name: "人物关系事件"}, {id: "other", name: "其他事件"}, {id: "ruins", name: "遗迹事件"}, {id: "chains", name: "系列事件"}] as const;
+ const records = godEventRecords(config, items);
  return <div className="god-event-groups">{categories.map(category => {
-  const entries = items.filter(item => (item.eventCategory ?? "other") === category.id);
+  const entries = records.filter(record => record.category === category.id);
   if (!entries.length) return null;
   return <div className="event-category" id={"events-" + category.id} key={category.id}><h3>{category.name}</h3>
-   {category.id !== "chains" ? cards(entries) : [...new Set(entries.map(item => item.eventChain?.id))].map(chainId => {
-    const nodes = entries.filter(item => item.eventChain?.id === chainId);
-    const chain = nodes[0].eventChain;
-    if (!chain) return cards(nodes);
-    return <div className="event-chain" id={"events-chain-" + chain.id} key={chainId}><h4>{chain.name}</h4><p>{chain.description}</p><div className="event-chain-nodes" aria-label={chain.name + "事件节点"}>{nodes.map((item, index) => <CrossReference key={item.id ?? item.name} config={config} name={"节点 " + (index + 1)} href={"#" + (item.id ? "entry-" + item.id : anchorFor(item.name))} />)}</div>{cards(nodes)}</div>;
+   <EventVariants config={config} records={entries.filter(record => !record.chain)} openEntries={openEntries} onToggle={onToggle} />
+   {[...new Set(entries.filter(record => record.chain).map(record => record.chain!.id))].map(chainId => {
+    const nodes = entries.filter(record => record.chain?.id === chainId);
+    return <EventSeries key={chainId} config={config} records={nodes} openEntries={openEntries} onToggle={onToggle} />;
    })}
   </div>;
  })}</div>;
@@ -194,7 +257,7 @@ export function GodArchive({ config, onGodChange }: { config: GodConfig; onGodCh
  const { sidebarHidden, setSidebarHidden, closeMobileSidebar, onSidebarClick } = useArchiveSidebar();
  const [openEntries, setOpenEntries] = useState<Set<string>>(new Set());
  const details = allEntries(config);
- const allIds = details.map(item => item.id ? "entry-" + item.id : anchorFor(item.name));
+ const allIds = details.map(item => item.id ? "entry-" + item.id : anchorFor(item.name)).concat(eventPresentationCardIds(godEventRecords(config, config.sections.find(section => section.id === "events")?.items ?? [])));
  if (config.supplicant) allIds.push(anchorFor("Supplicant"));
  const revealEntry = (id: string) => setOpenEntries(current => {
    const next = new Set(current).add(id);
